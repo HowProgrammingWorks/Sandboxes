@@ -7,7 +7,10 @@
 // Print from the global context of application module
 console.log('From application global context');
 
-module.exports = function() {
+const fs = require('fs');
+console.dir({ fs });
+
+module.exports = () => {
   // Print from the exported function context
   console.log('From application exported function');
 };
