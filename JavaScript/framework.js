@@ -10,50 +10,45 @@ const EXECUTION_TIMEOUT = 5000;
 // The framework can require core libraries
 const fs = require('fs');
 const vm = require('vm');
+const sfs = require('sandboxed-fs');
 
 // Create a hash and turn it into the sandboxed context which will be
 // the global context of an application
 const context = {
-  module: {}, console,
+  module: {},
+  console,
   require: (name) => {
-    if (name === 'fs') {
-      console.log('Module fs is restricted');
-      return null;
-    }
-    return require(name);
+    if (name === 'fs') return sfs.bind('./');
+    let exported = execute('./node_modules/' + name + '/index.js');
+    if (!exported) exported = require(name);
   }
 };
 
 context.global = context;
 const sandbox = vm.createContext(context);
 
-// Read an application source code from the file
-const fileName = './application.js';
-fs.readFile(fileName, (err, src) => {
-  // We need to handle errors here
+function execute(fileName) {
+  console.log(fileName);
+  fs.readFile(fileName, (err, src) => {
+    console.log(src);
+    let script;
+    try {
+      script = new vm.Script(src, { timeout: PARSING_TIMEOUT });
+      console.dir({ script });
+    } catch (e) {
+      console.dir(e);
+      process.exit(1);
+    }
+    try {
+      script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
+      const exported = sandbox.module.exports;
+      console.dir({ exported });
+      return exported;
+    } catch (e) {
+      console.dir(e);
+      process.exit(1);
+    }
+  });
+}
 
-  // Run an application in sandboxed context
-  let script;
-  try {
-    script = new vm.Script(src, { timeout: PARSING_TIMEOUT });
-  } catch (e) {
-    console.log('Parsing timeout');
-    process.exit(1);
-  }
-
-  try {
-    script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
-    const exported = sandbox.module.exports;
-    console.dir({ exported });
-  } catch (e) {
-    console.log('Execution timeout');
-    process.exit(1);
-  }
-
-  // We can access a link to exported interface from sandbox.module.exports
-  // to execute, save to the cache, print to console, etc.
-});
-
-process.on('uncaughtException', (err) => {
-  console.log('Unhandled exception: ' + err);
-});
+execute('./application.js');

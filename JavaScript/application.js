@@ -10,6 +10,14 @@ console.log('From application global context');
 const fs = require('fs');
 console.dir({ fs });
 
+const mkdirp = require('mkdirp');
+console.dir({ mkdirp });
+
+mkdirp('/hello/world', (err) => {
+  if (err) console.error(err);
+  else console.log('pow!');
+});
+
 module.exports = () => {
   // Print from the exported function context
   console.log('From application exported function');
