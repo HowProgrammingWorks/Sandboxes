@@ -1,0 +1,12 @@
+{
+  "name": "sandboxing",
+  "version": "0.0.2",
+  "author": "Timur Shemsedinov <timur.shemsedinov@gmail.com>",
+  "license": "MIT",
+  "main": "./framework.js",
+  "dependencies": {
+    "metarhia-common": "^0.0.25",
+    "mkdirp": "^0.5.1",
+    "sandboxed-fs": "^0.3.0"
+  }
+}
