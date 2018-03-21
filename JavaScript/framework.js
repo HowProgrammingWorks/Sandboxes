@@ -10,6 +10,8 @@ const EXECUTION_TIMEOUT = 5000;
 // The framework can require core libraries
 const fs = require('fs');
 const vm = require('vm');
+const timers = require('timers');
+const events = require('events');
 
 // Create a hash and turn it into the sandboxed context which will be
 // the global context of an application
@@ -27,25 +29,34 @@ const context = {
 context.global = context;
 const sandbox = vm.createContext(context);
 
+// Prepare lambda context injection
+const api = { timers,  events };
+
 // Read an application source code from the file
 const fileName = './application.js';
 fs.readFile(fileName, (err, src) => {
   // We need to handle errors here
+
+  // Wrap source to lambda, inject api
+  src = `api => { ${src} };`;
 
   // Run an application in sandboxed context
   let script;
   try {
     script = new vm.Script(src, { timeout: PARSING_TIMEOUT });
   } catch (e) {
+    console.dir(e);
     console.log('Parsing timeout');
     process.exit(1);
   }
 
   try {
-    script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
+    const f = script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
+    f(api);
     const exported = sandbox.module.exports;
     console.dir({ exported });
   } catch (e) {
+    console.dir(e);
     console.log('Execution timeout');
     process.exit(1);
   }
