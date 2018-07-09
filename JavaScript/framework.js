@@ -34,7 +34,7 @@ const api = { timers,  events };
 
 // Read an application source code from the file
 const fileName = './application.js';
-fs.readFile(fileName, (err, src) => {
+fs.readFile(fileName, 'utf8', (err, src) => {
   // We need to handle errors here
 
   // Wrap source to lambda, inject api
