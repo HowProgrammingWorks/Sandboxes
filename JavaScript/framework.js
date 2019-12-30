@@ -1,69 +1,82 @@
 'use strict';
 
-// Example showing us how the framework creates an environment (sandbox) for
-// appication runtime, load an application code and passes a sandbox into app
-// as a global context and receives exported application interface
-
-const PARSING_TIMEOUT = 1000;
-const EXECUTION_TIMEOUT = 5000;
+// File contains a small piece of the source to demonstrate main module
+// of a sample application to be executed in the sandboxed context by
+// another pice of code from `framework.js`.
 
 // The framework can require core libraries
-const fs = require('fs');
-const vm = require('vm');
-const timers = require('timers');
-const events = require('events');
 
-// Create a hash and turn it into the sandboxed context which will be
-// the global context of an application
-const context = {
-  module: {}, console,
-  require: name => {
-    if (name === 'fs') {
-      console.log('Module fs is restricted');
-      return null;
-    }
-    return require(name);
-  }
+// Tests require to initialize 'api', but with it, code is not running!
+let api;
+global.api = {};
+api.vm = require('vm');
+api.fs = require('fs');
+api.util = require('util');
+
+// This is a wrapper for 'console.log' to add more info into console output
+//in the following format: `<applicationName> <time> <message>`
+const wrapC = (path, fn) => message => {
+  console.log(`application: ${path}`);
+  const time = 'Time: ' + new Date();
+  console.log(time);
+  fn(message);
 };
+// Function for
+const def = obj =>
+  Object.keys(obj).reduce(
+    (hash, key) => ((hash[key] = typeof obj[key]), hash),
+    {}
+  );
 
-context.global = context;
-const sandbox = vm.createContext(context);
+// Wrap 'require' function for logging to a file in the format: `<time> <module name>`
+const req = name => {
+  const message = 'ModuleName: ' + name + '\nTime:' + new Date();
+  console.log(message);
+  return require(name);
+};
+// Print application parameter count and source code
+const countArgs = f => console.log(f.length);
+const content = f => console.log(f.toString());
 
-// Prepare lambda context injection
-const api = { timers,  events };
-
-// Read an application source code from the file
-const fileName = './application.js';
-fs.readFile(fileName, 'utf8', (err, src) => {
+const runSandboxed = path => {
+  // Create a hash and turn it into the sandboxed context which will be
+  // the global context of an application
+  const context = {
+    module: {},
+    require: req,
+    api: {
+      timers: { setTimeout, setInterval },
+      util: api.util,
+      console: { log: wrapC(path, console.log) },
+    },
+  };
+  context.global = context;
+  const sandbox = api.vm.createContext(context);
   // We need to handle errors here
 
-  // Wrap source to lambda, inject api
-  src = `api => { ${src} };`;
+  // Read an application source code from the file
+  api.fs.readFile(path, 'utf-8', (err, data) => {
+    if (err) return;
+    // Run an application in sandboxed context
+    const script = new api.vm.Script(data, path);
+    const f = script.runInNewContext(sandbox);
 
-  // Run an application in sandboxed context
-  let script;
-  try {
-    script = new vm.Script(src, { timeout: PARSING_TIMEOUT });
-  } catch (e) {
-    console.dir(e);
-    console.log('Parsing timeout');
-    process.exit(1);
-  }
-
-  try {
-    const f = script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
-    f(api);
+    if (process.argv[2] === path || path === 'application.js') f;
     const exported = sandbox.module.exports;
-    console.dir({ exported });
-  } catch (e) {
-    console.dir(e);
-    console.log('Execution timeout');
-    process.exit(1);
-  }
+    const type = typeof exported;
+    if (type === 'function') {
+      countArgs(exported);
+      content(exported);
+      exported();
+    } else if (type === 'object') {
+      console.log(def(exported));
+    }
+    // We can access a link to exported interface from sandbox.module.exports
+    // to execute, save to the cache, print to console, etc.
+  });
+};
 
-  // We can access a link to exported interface from sandbox.module.exports
-  // to execute, save to the cache, print to console, etc.
-});
+runSandboxed('application.js');
 
 process.on('uncaughtException', err => {
   console.log('Unhandled exception: ' + err);
