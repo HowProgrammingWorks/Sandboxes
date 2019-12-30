@@ -4,67 +4,76 @@
 // appication runtime, load an application code and passes a sandbox into app
 // as a global context and receives exported application interface
 
-const PARSING_TIMEOUT = 1000;
-const EXECUTION_TIMEOUT = 5000;
-
 // The framework can require core libraries
-const fs = require('fs');
-const vm = require('vm');
-const timers = require('timers');
-const events = require('events');
+global.api = {};
+api.fs = require('fs');
+api.vm = require('vm');
+api.util = require('util');
 
-// Create a hash and turn it into the sandboxed context which will be
-// the global context of an application
-const context = {
-  module: {}, console,
-  require: name => {
-    if (name === 'fs') {
-      console.log('Module fs is restricted');
-      return null;
+function Req() {};
+// #6
+Req.prototype.fn = function (module) {
+  console.log('ModuleName: ' + module);
+  console.log('Time: ' + new Date());
+  require(module);
+}
+// #4
+Req.prototype.wrapped = function (path, fn) {
+  const wrapped = item => {
+    console.log('ApplicationName: ' + path);
+    console.log('Time: ' + new Date());
+    fn(item);
+  };
+  return wrapped;
+}
+// #8
+Req.prototype.count = function(f) {
+  console.log(f.length);
+  console.log(f.toString());
+}
+
+const runSandboxed = path => {
+  const context = {
+    module: {},
+    require: new Req().fn,
+    api: {
+      console: { log: new Req().wrapped(path, console.log) }, // #1
+      timers: { setTimeout, setInterval },
+      fs: api.fs,
+      util: api.util // #2
+      },
     }
-    return require(name);
-  }
-};
 
-context.global = context;
-const sandbox = vm.createContext(context);
+  context.global = context;
+  const sandbox = api.vm.createContext(context);
+  // Read an application source code from the file
+  api.fs.readFile(path, (err, src) => {
+    // We need to handle errors here
 
-// Prepare lambda context injection
-const api = { timers,  events };
+    // Run an application in sandboxed context
+    const script = new api.vm.Script(src);
+    // #3
+    if (process.argv[2] === path || path === 'application.js') script.runInNewContext(sandbox);
 
-// Read an application source code from the file
-const fileName = './application.js';
-fs.readFile(fileName, 'utf8', (err, src) => {
-  // We need to handle errors here
-
-  // Wrap source to lambda, inject api
-  src = `api => { ${src} };`;
-
-  // Run an application in sandboxed context
-  let script;
-  try {
-    script = new vm.Script(src, { timeout: PARSING_TIMEOUT });
-  } catch (e) {
-    console.dir(e);
-    console.log('Parsing timeout');
-    process.exit(1);
-  }
-
-  try {
-    const f = script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
-    f(api);
     const exported = sandbox.module.exports;
-    console.dir({ exported });
-  } catch (e) {
-    console.dir(e);
-    console.log('Execution timeout');
-    process.exit(1);
-  }
+    console.log(exported);
 
-  // We can access a link to exported interface from sandbox.module.exports
-  // to execute, save to the cache, print to console, etc.
-});
+    //count args of exported function and print input code
+    if (typeof exported === 'function') { new Req().count(exported); exported() }
 
-process.on('uncaughtException', err => {
-  console.log('Unhandled exception: ' + err);
-});
+    // print type of exported inside items, (instance of Map)
+    // console.log(exported)
+    // exported instanceof Map --- false
+    else if (new Map([]) instanceof Map) {  // #7
+      for (const [key, val] of exported.entries()) {
+        console.log(key + ': ' + typeof val);
+      };
+    }
+
+    // We can access a link to exported interface from sandbox.module.exports
+    // to execute, save to the cache, print to console, etc.
+
+  })
+}
+
+runSandboxed('application.js');
