@@ -17,7 +17,7 @@ const events = require('events');
 // the global context of an application
 const context = {
   module: {}, console,
-  require: name => {
+  require: (name) => {
     if (name === 'fs') {
       console.log('Module fs is restricted');
       return null;
@@ -65,6 +65,6 @@ fs.readFile(fileName, 'utf8', (err, src) => {
   // to execute, save to the cache, print to console, etc.
 });
 
-process.on('uncaughtException', err => {
+process.on('uncaughtException', (err) => {
   console.log('Unhandled exception: ' + err);
 });
