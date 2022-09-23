@@ -8,17 +8,17 @@ const PARSING_TIMEOUT = 1000;
 const EXECUTION_TIMEOUT = 5000;
 
 // The framework can require core libraries
-const fs = require('fs');
-const vm = require('vm');
-const timers = require('timers');
-const events = require('events');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const timers = require('node:timers');
+const events = require('node:events');
 
 // Create a hash and turn it into the sandboxed context which will be
 // the global context of an application
 const context = {
   module: {}, console,
   require: (name) => {
-    if (name === 'fs') {
+    if (name === 'fs' || name === 'node:fs') {
       console.log('Module fs is restricted');
       return null;
     }

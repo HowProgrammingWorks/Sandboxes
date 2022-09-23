@@ -4,8 +4,8 @@
 // of a sample application to be executed in the sandboxed context by
 // another pice of code from `framework.js`. Read README.md for tasks.
 
-const fs = require('fs');
-const net = require('net');
+const fs = require('node:fs');
+const net = require('node:net');
 
 // Print from the global context of application module
 console.log('From application global context');
