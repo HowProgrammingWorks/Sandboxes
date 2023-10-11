@@ -16,6 +16,10 @@ editedConsole.log = (message) => {
   console.log(`${fileName} : ${new Date().toISOString()} : ${message}`);
 }
 
+const printFnInfo = (fn) => {
+  console.log(`Function parameter: ${fn.length}, source: ${fn.toString()}`);
+}
+
 const context = {
   module: {},
   console: editedConsole,
@@ -33,16 +37,10 @@ const context = {
 context.global = context;
 const sandbox = vm.createContext(context);
 
-// Prepare lambda context injection
 const api = { timers,  events };
 
 fs.readFile(fileName, 'utf8', (err, src) => {
-  // We need to handle errors here
-
-  // Wrap source to lambda, inject api
   src = `api => { ${src} };`;
-
-  // Run an application in sandboxed context
   let script;
   try {
     script = new vm.Script(src, { timeout: PARSING_TIMEOUT });
@@ -58,15 +56,15 @@ fs.readFile(fileName, 'utf8', (err, src) => {
     f(api);
     const exported = sandbox.module.exports;
     console.dir({ exported });
+    printFnInfo(exported.fn);
   } catch (e) {
     console.dir(e);
     console.log('Execution timeout');
     process.exit(1);
   }
-
-  // We can access a link to exported interface from sandbox.module.exports
-  // to execute, save to the cache, print to console, etc.
 });
+
+
 
 process.on('uncaughtException', (err) => {
   console.log('Unhandled exception: ' + err);
