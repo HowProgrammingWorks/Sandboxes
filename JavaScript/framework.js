@@ -29,13 +29,12 @@ const context = {
 
 context.global = context;
 const sandbox = vm.createContext(context);
-console.log(sandbox);
 
 // Prepare lambda context injection
 const api = { timers,  events };
 
 // Read an application source code from the file
-const fileName = './application.js';
+const fileName = process.argv[2];
 fs.readFile(fileName, 'utf8', (err, src) => {
   // We need to handle errors here
 
