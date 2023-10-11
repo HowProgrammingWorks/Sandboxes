@@ -21,6 +21,7 @@ const context = {
   console: editedConsole,
   setTimeout, setImmediate, util,
   require: (name) => {
+    console.log(`${new Date().toISOString()} : ${name}`);
     if (name === 'fs' || name === 'node:fs') {
       console.log('Module fs is restricted');
       return null;
