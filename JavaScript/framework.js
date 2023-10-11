@@ -16,7 +16,7 @@ const events = require('node:events');
 // Create a hash and turn it into the sandboxed context which will be
 // the global context of an application
 const context = {
-  module: {}, console,
+  module: {}, console, setTimeout, setImmediate,
   require: (name) => {
     if (name === 'fs' || name === 'node:fs') {
       console.log('Module fs is restricted');
@@ -28,6 +28,7 @@ const context = {
 
 context.global = context;
 const sandbox = vm.createContext(context);
+console.log(sandbox);
 
 // Prepare lambda context injection
 const api = { timers,  events };
@@ -52,6 +53,7 @@ fs.readFile(fileName, 'utf8', (err, src) => {
 
   try {
     const f = script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
+    console.log("here", f);
     f(api);
     const exported = sandbox.module.exports;
     console.dir({ exported });

@@ -13,6 +13,8 @@ console.dir({ fs, net }, { depth: 1 });
 console.dir({ global }, { depth: 1 });
 console.dir({ api }, { depth: 2 });
 
+setTimeout(() => {console.log('work')}, 2000);
+
 module.exports = () => {
   // Print from the exported function context
   console.log('From application exported function');
