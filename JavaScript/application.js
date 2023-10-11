@@ -14,6 +14,7 @@ console.dir({ global }, { depth: 1 });
 console.dir({ api }, { depth: 2 });
 
 setTimeout(() => {console.log('work')}, 2000);
+console.log(util.format('Hello %s, %i', 'world', 1000));
 
 module.exports = () => {
   // Print from the exported function context

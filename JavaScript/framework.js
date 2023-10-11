@@ -12,11 +12,12 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const timers = require('node:timers');
 const events = require('node:events');
+const util = require('node:util');
 
 // Create a hash and turn it into the sandboxed context which will be
 // the global context of an application
 const context = {
-  module: {}, console, setTimeout, setImmediate,
+  module: {}, console, setTimeout, setImmediate, util,
   require: (name) => {
     if (name === 'fs' || name === 'node:fs') {
       console.log('Module fs is restricted');
