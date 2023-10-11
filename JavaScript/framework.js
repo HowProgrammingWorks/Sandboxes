@@ -52,7 +52,6 @@ fs.readFile(fileName, 'utf8', (err, src) => {
 
   try {
     const f = script.runInNewContext(sandbox, { timeout: EXECUTION_TIMEOUT });
-    console.log("here", f);
     f(api);
     const exported = sandbox.module.exports;
     console.dir({ exported });
